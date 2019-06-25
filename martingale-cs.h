@@ -95,6 +95,28 @@ int martingale_cs_check_constants(void);
 double martingale_cs_threshold(
     uint64_t n, uint64_t min_count, double log_eps);
 
+/*
+ * Uses the martingale confidence sequence to return the width of the
+ * confidence interval on the index of a given `quantile` in `n`
+ * observations, as described earlier.
+ *
+ * Given a bag of `n` observations, and assuming that we only compute
+ * quantile confidence intervals once we have `min_count` observations
+ * or more, this function will return the slop for the index of the
+ * `quantile`, for a `1 - exp(log_eps)` confidence interval.  The
+ * quantile should be between the value at index `floor(quantile * n -
+ * slop)` in the sorted list of observations and at at index
+ * `ceiling(quantile * n + slop)`.  Either index might be out of
+ * bounds (or negative); in that case we have too few observations to
+ * provide a lower or upper bound on the quantile.
+ *
+ * The martingale confidence sequence guarantees that the actual
+ * distribution quantile lies in that interval *for every n* with
+ * probability at least 11 - exp(log_eps)`.
+ */
+double martingale_cs_quantile_slop(
+    double quantile, uint64_t n, uint64_t min_count, double log_eps);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

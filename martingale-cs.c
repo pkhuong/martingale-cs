@@ -166,3 +166,19 @@ double martingale_cs_threshold(uint64_t n, uint64_t min_count, double log_eps)
 		+ 0.25 * log_a);
 	return next(3 * sqrt_up(next(n * inner)));
 }
+
+double martingale_cs_quantile_slop(
+    double quantile, uint64_t n, uint64_t min_count, double log_eps)
+{
+	if (quantile < 0.0) {
+		quantile = 0;
+	}
+
+	if (quantile > 1.0) {
+		quantile = 1.0;
+	}
+
+	const double scale = (quantile < 0.5) ? 1 - quantile : quantile;
+	return scale * martingale_cs_threshold(
+			   n, min_count, log_eps + martingale_cs_eq);
+}

@@ -67,4 +67,21 @@ TEST(MartingaleCs, MonotonicEps)
 	EXPECT_GT(martingale_cs_threshold(1000, 10, -5),
 	    martingale_cs_threshold(1000, 10, -4));
 }
+
+TEST(MartingaleCs, Quantile)
+{
+	// Compare against the expression given in the paper.
+	EXPECT_EQ(martingale_cs_quantile_slop(0.5, 1000, 32, std::log(0.05)),
+	    0.5 * martingale_cs_threshold(
+		      1000, 32, std::log(0.05) + martingale_cs_eq));
+
+	// And make sure we handle the symmetry correctly.
+	EXPECT_EQ(martingale_cs_quantile_slop(0.1, 10000, 3, std::log(0.001)),
+	    0.9 * martingale_cs_threshold(
+		      10000, 3, std::log(0.001) + martingale_cs_eq));
+
+	EXPECT_EQ(martingale_cs_quantile_slop(0.9, 10000, 3, std::log(0.01)),
+	    0.9 * martingale_cs_threshold(
+		      10000, 3, std::log(0.01) + martingale_cs_eq));
+}
 } // namespace

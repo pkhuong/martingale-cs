@@ -15,10 +15,8 @@ namespace {
 std::pair<double, double> EstimateQuantile(double quantile, size_t min_count,
     double eps, std::vector<double> *observations)
 {
-	const double threshold = martingale_cs_threshold(observations->size(),
-	    min_count, std::log(eps) + martingale_cs_eq);
-	const double slop = std::max(quantile, 1.0 - quantile) * threshold;
-
+	const double slop = martingale_cs_quantile_slop(
+	    quantile, observations->size(), min_count, std::log(eps));
 	const ssize_t lower_index
 	    = std::floor(quantile * observations->size() - slop);
 	const size_t upper_index
