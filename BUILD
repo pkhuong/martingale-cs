@@ -14,3 +14,15 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "martingale-cs-stat_test",
+    srcs = ["martingale-cs-stat_test.cc"],
+    size = "enormous",  # each test needs ~15M data points.
+    shard_count = 5,
+    deps = [
+        ":martingale-cs",
+        "@com_google_googletest//:gtest_main",
+        "@csm//:csm",
+    ],
+)

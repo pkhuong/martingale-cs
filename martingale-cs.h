@@ -37,9 +37,9 @@ int martingale_cs_check_constants(void);
  * that we start comparing at `min_count >= 2`.
  *
  * By default, this function implements a one-sided test, i.e., the
- * confidence interval for the sum is (-infty, threshold).  Add
- * `martingale_cs_eq` to the `log_eps` for a two-sided test: the
- * confidence interval becomes (-threshold, threshold).
+ * confidence interval (CI) for the sum is (-infty, threshold).  Add
+ * `martingale_cs_eq` to the `log_eps` for the half-interval of a
+ * two-sided test: the CI becomes (-threshold, threshold).
  *
  * This confidence sequence can be used to test any hypothesis about a
  * statistic that is a sum of a value derived from each observation
@@ -57,6 +57,40 @@ int martingale_cs_check_constants(void);
  * around 0.  If strays far away to exceed `martingale_cs_threshold`,
  * we can reject the null: the means of the two random variables most
  * likely differ.
+ *
+ * We can also use this interval to estimate quantiles.  Let q be the
+ * unknown 90th percentile for some random variable W.  We can derive
+ * another random variable from W: W_i = -(0.1/0.9) if X_i <= q, and 1
+ * if X_i > q.  W has zero mean and remains in the [-1, 1] range.  The
+ * 2-sided confidence interval returned by
+ * `martingale_cs_threshold(..., + martingale_cs_eq)` bounds how far
+ * away we can expect |Sum w_i| to be from 0.  Set delta equal to
+ * `martingale_cs_threshold(..., log(eps) + martingale_cs_le)`.
+ *
+ * We know that we can expect Sum w_i to fall in [-delta, delta] with
+ * probability 1 - eps.  At the bottom edge, we have
+ *
+ *   -0.1/0.9 #{X_i <= q} + #{X_i > q} = -delta
+ *            #{X_i <= q} + #{X_i > q} = n
+ *
+ * -> (1 + 0.1/0.9) #{X_i <= q} = 10/9 #{X_i <= q } = n + delta
+ *
+ * and thus at most 9/10 (n + delta) observations should fall at or
+ * below the 90th percentile q.  Conversely, we can thus expect that q
+ * is at most the `ceil[9/10 (n + delta)]` smallest observations.  In
+ * the other direction, we solve
+ *
+ *   -0.1/0.9 #{X_i <= q} + #{X_i > q} = delta
+ *            #{X_i <= q} + #{X_i > q} = n
+ *
+ * -> (1 + 0.1/0.9) #{X_i <= q} = 10/9 #{X_i <= q} = n - delta
+ *
+ * and thus at least 9/10 (n - delta) observations should fall at or
+ * below the 90th percentile q. Conversely, we can expect that q is at
+ * least the `floor[9/10 (n - delta)]` smallest observation.
+ *
+ * This pair of lower and upper bounds give us an eps-level confidence
+ * interval for the 90th percentile, or for any quantile in general.
  */
 double martingale_cs_threshold(
     uint64_t n, uint64_t min_count, double log_eps);
