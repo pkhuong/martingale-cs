@@ -144,12 +144,20 @@ static const double log_a_up(uint64_t min_count, double log_eps)
 
 double martingale_cs_threshold(uint64_t n, uint64_t min_count, double log_eps)
 {
-	if (min_count < 2) {
+	assert(log_eps <= 0 && "Positive log_eps means > 100% false positive "
+			       "rate. Should it be negated?");
+
+	if (min_count < c) {
 		min_count = c;
 	}
 
 	if (n < min_count) {
 		return HUGE_VAL;
+	}
+
+	if (log_eps >= 0) {
+		/* >= 100% false positive rate: just always reject. */
+		return -HUGE_VAL;
 	}
 
 	const double log_a = log_a_up(min_count, log_eps);
@@ -170,6 +178,10 @@ double martingale_cs_threshold(uint64_t n, uint64_t min_count, double log_eps)
 double martingale_cs_quantile_slop(
     double quantile, uint64_t n, uint64_t min_count, double log_eps)
 {
+	assert(quantile >= 0 && quantile <= 1.0
+	    && "Quantile is a fraction in [0, 1]. Was a percentile passed in "
+	       "without dividing by 100?");
+
 	if (quantile < 0.0) {
 		quantile = 0;
 	}

@@ -19,12 +19,20 @@ extern const double martingale_cs_eq;
  *
  * bit 0: cs_le
  * bit 1: cs_eq
- * bit 2: internal_constant
+ * bit 2: an internal constant
  */
 int martingale_cs_check_constants(void);
 
 /*
  * Confidence interval sequence for simple martingales.
+ *
+ * `n` is the number of values observed so far, `min_count` is the
+ * minimum number of values at which we output useful thresholds (when
+ * `n < min_count`, the return value is always +infty), and `log_eps`
+ * is the natural log of the allowed false positive (type I) rate.
+ *
+ * `min_count` should be at least 2, abd `log_eps` should be strictly
+ * negative.
  *
  * Let X be a random variable with 0 mean and range in [-1, 1].
  *
@@ -100,6 +108,9 @@ double martingale_cs_threshold(
  * confidence interval on the index of a given `quantile` in `n`
  * observations, as described earlier.
  *
+ * `quantile` must be in [0, 1].  The other parameters are as in
+ * `martingale_cs_threshold`.
+ *
  * Given a bag of `n` observations, and assuming that we only compute
  * quantile confidence intervals once we have `min_count` observations
  * or more, this function will return the slop for the index of the
@@ -112,7 +123,7 @@ double martingale_cs_threshold(
  *
  * The martingale confidence sequence guarantees that the actual
  * distribution quantile lies in that interval *for every n* with
- * probability at least 11 - exp(log_eps)`.
+ * probability at least `1 - exp(log_eps)`.
  */
 double martingale_cs_quantile_slop(
     double quantile, uint64_t n, uint64_t min_count, double log_eps);
