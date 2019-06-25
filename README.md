@@ -12,23 +12,23 @@ test is actually more widely applicable: it suffices for the moment
 generating function `mgf(t) = E[exp(tx)] <= exp(t^2 / 2)` for all
 `t >= 0`.  However, this property can be hard to prove, and
 [Hoeffding's lemma](https://en.wikipedia.org/wiki/Hoeffding%27s_lemma)
-guarantees that a range in [-1, 1] implies that the `mgf`
-satisfies the condtion.
+says that a range in [-1, 1] suffices to satisfy the condition.
 
-This library uses the confidence sequence to generate a confidence
-sequence on the rank of any quantile in the observations, as
-demonstrated in the aforementioned paper of Darling and Robbins.
+This library implements a confidence sequence on the rank of any
+specific quantile in the observations on top of the martingale
+confidence sequence, as demonstrated in the aforementioned paper of
+Darling and Robbins.
 
-Another way to use this martingale confidence sequence would be to
-compare the mean of two random variables X and Y in [0, 1] (e.g.,
-runtimes).  Their difference Z = X - Y has range [-1, 1] and, if X and
-Y have the same mean, Z has a mean of 0.  We can thus accumulate the
-sum `z_1 + z_2 + ... + z_i`, and compare against the threshold
-returned by `martingale_cs_threshold` at each iteration.  If we
-observe that the sum exceeds the threshold even once, we may reject
-the hypothesis that X has mean equal to or less than that of Y (a
-two-tailed test simply needs a Bonferroni correction by adding
-`martingale_cs_eq` to `log_eps`).
+We could also use this martingale confidence sequence to compare the
+mean of two random variables X and Y in [0, 1] (e.g., runtimes).
+Their difference Z = X - Y has range [-1, 1] and, if X and Y have the
+same mean, Z has a mean of 0.  We can thus accumulate the sum `z_1 +
+z_2 + ... + z_i`, and compare against the threshold returned by
+`martingale_cs_threshold` at each iteration.  If we observe that the
+sum exceeds the threshold even once, we may reject the hypothesis that
+X has mean equal to or less than that of Y (a two-tailed test simply
+needs a Bonferroni correction by adding `martingale_cs_eq` to
+`log_eps`).
 
 A call to `martingale_cs_threshold` generates a confidence sequence at
 level `1 - exp(log_eps)`, for a sum of `n` values, assuming that the
