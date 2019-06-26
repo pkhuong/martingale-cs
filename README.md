@@ -49,3 +49,16 @@ simply ask for a confidence interval with half the false positive
 rate, so that we can use the threshold symmetrically to check if the
 sum is too high or too low, and still guarantee a total false positive
 rate of at most `exp(log_eps)`.
+
+See also
+--------
+
+The martingale-CS can work with a large number of point statistics,
+but tends to need a lot of data to reject the null hypothesis.  If the
+question can be cast as a Binomial test, [confidence sequence
+method](https://github.com/pkhuong/csm) should terminate much more
+quickly.  Otherwise, if we can compare full distributions,
+[one-sided-KS](https://github.com/pkhuong/one-sided-ks)
+may also be applicable: this Kolmogorov-Smirnov test tends to
+require more data points than the binomial CSM, but still
+less so than martingale-CS.
