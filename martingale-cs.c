@@ -191,6 +191,21 @@ double martingale_cs_quantile_slop(
 	}
 
 	const double scale = (quantile < 0.5) ? 1 - quantile : quantile;
-	return scale * martingale_cs_threshold(
-			   n, min_count, log_eps + martingale_cs_eq);
+        // Extend the range from Darling and Robbins to account for
+        // equality.
+        //
+        // We can't use the function f(x) = -1 if x <= median else 1
+        // (for example).  Since `x = median` happens with non-zero
+        // probability, we must add a third case:
+        //
+        //  f(x) = -1 if x < median
+        //       |  0 if x = median
+        //       |  1 if x > median
+        //
+        // We must thus extend the range by one more observation,
+        // since that last observation might have incurred 0 "cost" in
+        // the martingale.
+	return 1
+	    + scale * martingale_cs_threshold(
+			  n, min_count, log_eps + martingale_cs_eq);
 }

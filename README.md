@@ -17,7 +17,11 @@ says that a range in [-1, 1] suffices to satisfy the condition.
 This library implements a confidence sequence on the rank of any
 specific quantile in the observations on top of the martingale
 confidence sequence, as demonstrated in the aforementioned paper of
-Darling and Robbins.
+Darling and Robbins.  There is a small difference from the paper
+to account for the non-zero probability of having observations
+exactly equal to the median, when values are discrete (e.g.,
+when measuring time in clock cycles): the range is conservatively
+extended by one more observation.
 
 We could also use this martingale confidence sequence to compare the
 mean of two random variables X and Y in [0, 1] (e.g., runtimes).
