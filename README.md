@@ -12,7 +12,8 @@ test is actually more widely applicable: it suffices for the moment
 generating function `mgf(t) = E[exp(tx)] <= exp(t^2 / 2)` for all
 `t >= 0`.  However, this property can be hard to prove, and
 [Hoeffding's lemma](https://en.wikipedia.org/wiki/Hoeffding%27s_lemma)
-says that a range in [-1, 1] suffices to satisfy the condition.
+says that a range of width at most 2 (e.g., [-1, 1]) suffices to
+satisfy the condition.
 
 This library implements a confidence sequence on the rank of any
 specific quantile in the observations on top of the martingale

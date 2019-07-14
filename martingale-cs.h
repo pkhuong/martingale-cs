@@ -34,7 +34,9 @@ int martingale_cs_check_constants(void);
  * `min_count` should be at least 2, abd `log_eps` should be strictly
  * negative.
  *
- * Let X be a random variable with 0 mean and range in [-1, 1].
+ * Let X be a random variable with 0 mean and momemt generating
+ * function mfg such that `mgf(t) = E[exp(tx)] <= exp(t^2 / 2)` for
+ * all `t >= 0`.
  *
  * This function returns the width of a `1 - exp(log_eps)`-confidence
  * interval for the sum of `n` i.i.d. values sampled from `X`. This
@@ -102,6 +104,14 @@ int martingale_cs_check_constants(void);
  */
 double martingale_cs_threshold(
     uint64_t n, uint64_t min_count, double log_eps);
+
+/*
+ * Returns the width of a `1 - exp(log_eps)`-confidence interval for
+ * the sum of `n` i.i.d. values sampled from `X`, where `X` has a
+ * zero mean and a range of the form `[lo, lo + span]`.
+ */
+double martingale_cs_threshold_span(
+    uint64_t n, uint64_t min_count, double span, double log_eps);
 
 /*
  * Uses the martingale confidence sequence to return the width of the

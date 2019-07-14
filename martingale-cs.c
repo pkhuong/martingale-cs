@@ -175,6 +175,21 @@ double martingale_cs_threshold(uint64_t n, uint64_t min_count, double log_eps)
 	return next(3 * sqrt_up(next(n * inner)));
 }
 
+/*
+ * Hoeffding's lemma guarantees that any zero-mean distribution with a
+ * range of span 2 satisfies our constraint that `mgf <= exp(t^2 /
+ * 2)`.
+ *
+ * Rescale the width returned by `martingale_cs_threshold` as if the
+ * `width = 2`.
+ */
+double martingale_cs_threshold_span(
+    uint64_t n, uint64_t min_count, double span, double log_eps)
+{
+	const double scale = span / 2; /* Division by 2 is exact. */
+	return next(scale * martingale_cs_threshold(n, min_count, log_eps));
+}
+
 double martingale_cs_quantile_slop(
     double quantile, uint64_t n, uint64_t min_count, double log_eps)
 {
@@ -182,30 +197,28 @@ double martingale_cs_quantile_slop(
 	    && "Quantile is a fraction in [0, 1]. Was a percentile passed in "
 	       "without dividing by 100?");
 
-	if (quantile < 0.0) {
-		quantile = 0;
+	if (quantile <= 0.0 || quantile >= 1.0) {
+		return HUGE_VAL;
 	}
 
-	if (quantile > 1.0) {
-		quantile = 1.0;
-	}
-
-	const double scale = (quantile < 0.5) ? 1 - quantile : quantile;
-        // Extend the range from Darling and Robbins to account for
-        // equality.
-        //
-        // We can't use the function f(x) = -1 if x <= median else 1
-        // (for example).  Since `x = median` happens with non-zero
-        // probability, we must add a third case:
-        //
-        //  f(x) = -1 if x < median
-        //       |  0 if x = median
-        //       |  1 if x > median
-        //
-        // We must thus extend the range by one more observation,
-        // since that last observation might have incurred 0 "cost" in
-        // the martingale.
+	const double scale = fmax(quantile, 1 - quantile);
+	/*
+	 * Extend the range from Darling and Robbins to account for
+	 * equality.
+	 *
+	 * We can't use the function f(x) = -1 if x <= median else 1
+	 * (for example).  Since `x = median` happens with non-zero
+	 * probability, we must add a third case:
+	 *
+	 *  f(x) = -1 if x < median
+	 *       |  0 if x = median
+	 *       |  1 if x > median
+	 *
+	 * We must thus extend the range by one more observation,
+	 * since that last observation might have incurred 0 "cost" in
+	 * the martingale.
+	 */
 	return 1
-	    + scale * martingale_cs_threshold(
-			  n, min_count, log_eps + martingale_cs_eq);
+	    + scale * martingale_cs_threshold_span(
+			  n, min_count, 2.0, log_eps + martingale_cs_eq);
 }
