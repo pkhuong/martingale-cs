@@ -201,24 +201,27 @@ double martingale_cs_quantile_slop(
 		return HUGE_VAL;
 	}
 
-	const double scale = fmax(quantile, 1 - quantile);
 	/*
 	 * Extend the range from Darling and Robbins to account for
 	 * equality.
 	 *
-	 * We can't use the function f(x) = -1 if x <= median else 1
-	 * (for example).  Since `x = median` happens with non-zero
+	 * We can't use f(x) = -0.5 if x <= median else 0.5 (for
+	 * example): since `x = median` happens with non-zero
 	 * probability, we must add a third case:
 	 *
-	 *  f(x) = -1 if x < median
-	 *       |  0 if x = median
-	 *       |  1 if x > median
+	 *  f(x) = -0.5 if x < median
+	 *       |  0.0 if x = median
+	 *       |  0.5 if x > median
 	 *
 	 * We must thus extend the range by one more observation,
 	 * since that last observation might have incurred 0 "cost" in
 	 * the martingale.
+	 *
+	 * Letting the range be 1 means that each unexpected value
+	 * over or under the quantile "costs" 1 in terms of distance
+	 * from the expected sum value, which is exactly what we want
+	 * for this quantile slop.
 	 */
-	return 1
-	    + scale * martingale_cs_threshold_span(
-			  n, min_count, 2.0, log_eps + martingale_cs_eq);
+	return 1 + martingale_cs_threshold_span(
+		       n, min_count, 1.0, log_eps + martingale_cs_eq);
 }
