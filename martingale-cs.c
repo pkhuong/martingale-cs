@@ -190,6 +190,57 @@ double martingale_cs_threshold_span(
 	return next(scale * martingale_cs_threshold(n, min_count, log_eps));
 }
 
+/*
+ * The classic proof of Hoeffding's lemma eventually gets to a point
+ * where we upper bound the expression
+ *   t (1 - t),
+ * where
+ *   t = (rho exp(v)) / (1 - rho + rho exp(v)),
+ *   rho = -lo / (hi - lo)
+ *   v an arbitrary real >= 0.
+ *
+ * t is a monotonically decreasing function of v, and
+ *   lim_{v -> \infty} t = 1 from below.
+ *
+ * t (1 - t) is maximised at t = 0.5.  When rho <= 0.5, the mean value
+ * theorem tells us there exists a v such that t = 0.5 may be
+ * achieved, and there's nothing to gain compared to
+ * martingale_cs_threshold_span.  However, when rho > 0.5, the
+ * expression is maximised at v = 0.  In that case, we may widen the
+ * span that satisfies Darling and Robbins's condition on the mgf
+ *
+ * We have that mgf <= exp[1/2 (rho (1 - rho)) (hi - lo)^2 \lambda^t],
+ * and thus only need
+ *   hi - lo <= 1/sqrt[rho (1 - rho)]
+ * to guarantee mgf(\lambda) <= exp(1/2 \lambda^2).
+ */
+double martingale_cs_threshold_range(
+    uint64_t n, uint64_t min_count, double lo, double hi, double log_eps)
+{
+	/*
+	 * With this kind of range, the random values must all be exactly 0
+	 * to achieve a mean of zero.
+	 */
+	if (lo >= 0 || hi <= 0) {
+		return 0;
+	}
+
+	const double span = next(hi - lo);
+	const double rho = prev(-lo / span);
+	double scale;
+	if (rho <= 0.5) {
+		scale = span / 2;
+	} else {
+		/*
+		 * Ideal span is 1 / sqrt[rho (1 - rho)], so we must scale
+		 * `span` by `span / ideal_span = sqrt[rho (1 - rho)] * span`
+		 */
+		scale = next(sqrt_up(rho * next(1 - rho)) * span);
+	}
+
+	return next(scale * martingale_cs_threshold(n, min_count, log_eps));
+}
+
 double martingale_cs_quantile_slop(
     double quantile, uint64_t n, uint64_t min_count, double log_eps)
 {
@@ -198,7 +249,7 @@ double martingale_cs_quantile_slop(
 	       "without dividing by 100?");
 
 	if (quantile <= 0.0 || quantile >= 1.0) {
-		return HUGE_VAL;
+		return 1;
 	}
 
 	/*
@@ -224,4 +275,46 @@ double martingale_cs_quantile_slop(
 	 */
 	return 1 + martingale_cs_threshold_span(
 		       n, min_count, 1.0, log_eps + martingale_cs_eq);
+}
+
+double martingale_cs_quantile_slop_hi(
+    double quantile, uint64_t n, uint64_t min_count, double log_eps)
+{
+	assert(quantile >= 0 && quantile <= 1.0
+	    && "Quantile is a fraction in [0, 1]. Was a percentile passed in "
+	       "without dividing by 100?");
+
+	if (quantile <= 0.0) {
+		return 1;
+	}
+
+	if (quantile >= 1.0) {
+		return HUGE_VAL;
+	}
+
+	/*
+	 * If, e.g. quantile = 0.9, then we pay -0.1 for x < quantile,
+	 * and .9 for x > quantile.
+	 */
+	return 1 + martingale_cs_threshold_range(n, min_count, quantile - 1,
+		       quantile, log_eps + martingale_cs_eq);
+}
+
+double martingale_cs_quantile_slop_lo(
+    double quantile, uint64_t n, uint64_t min_count, double log_eps)
+{
+	assert(quantile >= 0 && quantile <= 1.0
+	    && "Quantile is a fraction in [0, 1]. Was a percentile passed in "
+	       "without dividing by 100?");
+
+	if (quantile <= 0.0) {
+		return -HUGE_VAL;
+	}
+
+	if (quantile >= 1.0) {
+		return -1;
+	}
+
+	return -1 - martingale_cs_threshold_range(n, min_count, -quantile,
+			1 - quantile, log_eps + martingale_cs_eq);
 }

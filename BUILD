@@ -23,6 +23,18 @@ cc_test(
     deps = [
         ":martingale-cs",
         "@com_google_googletest//:gtest_main",
-        "@csm//:csm",
+        "@csm",
+    ],
+)
+
+cc_test(
+    name = "martingale-cs-asymmetric-stat_test",
+    srcs = ["martingale-cs-asymmetric-stat_test.cc"],
+    size = "enormous",  # each test needs ~15M data points.
+    shard_count = 5,
+    deps = [
+        ":martingale-cs",
+        "@com_google_googletest//:gtest_main",
+        "@csm",
     ],
 )

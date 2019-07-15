@@ -114,6 +114,33 @@ double martingale_cs_threshold_span(
     uint64_t n, uint64_t min_count, double span, double log_eps);
 
 /*
+ * Returns the width of a one-sided `1 - exp(log_eps)`-confidence
+ * interval the sum of `n` i.i.d. values sampled from `X`, where `X`
+ * has a zero mean and range `[lo, hi]` (`lo <= 0 <= hi`).
+ *
+ * The one-sided confidence interval is on [Sum X_i \leq Interval_n]
+ * with `p = 1 - exp(log_eps)` for all n, where `Interval` is the
+ * return value of `martingale_cs_threshold_range`.
+ *
+ * This function finds tighter intervals than the `_span` variant when
+ * `|lo| > |hi|`: in that case, a sum > 0 means that we experienced a
+ * lot of events with small individual impact on the sum.
+ * Intuitively, that's less likely to happen than being unlucky once,
+ * with that rare event having a large impact on the sum.
+ *
+ * This function differs from `martingale_cs_threshold_span` because
+ * it returns stronger asymmetric intervals.  The other half-interval
+ * for [Sum X_i >= Interval_n] may be obtained by flipping the sign of
+ * the variate and swapping `-lo` and `-hi`.  At least one of the two
+ * half-intervals will match the symmetric one returned by `_span`,
+ * but the other one is tighter (unless the range is symmetric, in
+ * which case both are equal).  The more negative `lo / (hi - lo)`,
+ * the smaller the interval returned by this function.
+ */
+double martingale_cs_threshold_range(
+    uint64_t n, uint64_t min_count, double lo, double hi, double log_eps);
+
+/*
  * Uses the martingale confidence sequence to return the width of the
  * confidence interval on the index of a given `quantile` in `n`
  * observations, as described earlier.
@@ -138,6 +165,31 @@ double martingale_cs_threshold_span(
 double martingale_cs_quantile_slop(
     double quantile, uint64_t n, uint64_t min_count, double log_eps);
 
+/*
+ * Returns the upper end of an asymmetric confidence interval for
+ * `quantile`: with probability `1 - exp(log_eps)`, the true quantile
+ * is always less than or equal to `quantile * n + slop_hi`
+ * observations.
+ *
+ * This half-interval has the same properties as that returned by
+ * `martingale_cs_quantile_slop`, but is tighter in one direction when
+ * `quantile != 0.5`, and otherwise equal.
+ */
+double martingale_cs_quantile_slop_hi(
+    double quantile, uint64_t n, uint64_t min_count, double log_eps);
+
+/*
+ * Returns the lower end of an asymmetric confidence interval for
+ * `quantile`: with probability `1 - exp(log_eps)`, the true quantile
+ * is always greater than or equal to `quantile * n + slop_lo`
+ * observations.
+ *
+ * This half-interval has the same properties as that returned by
+ * `martingale_cs_quantile_slop`, but is tighter in one direction when
+ * `quantile != 0.5`, and otherwise equal.
+ */
+double martingale_cs_quantile_slop_lo(
+    double quantile, uint64_t n, uint64_t min_count, double log_eps);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

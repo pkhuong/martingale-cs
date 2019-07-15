@@ -15,12 +15,12 @@ namespace {
 std::pair<double, double> EstimateQuantile(double quantile, size_t min_count,
     double eps, std::vector<double> *observations)
 {
-	const double slop = martingale_cs_quantile_slop(
-	    quantile, observations->size(), min_count, std::log(eps));
-	const ssize_t lower_index
-	    = std::floor(quantile * observations->size() - slop);
-	const size_t upper_index
-	    = std::ceil(quantile * observations->size() + slop);
+	const ssize_t lower_index = std::floor(quantile * observations->size()
+	    + martingale_cs_quantile_slop_lo(
+		  quantile, observations->size(), min_count, std::log(eps)));
+	const size_t upper_index = std::ceil(quantile * observations->size()
+	    + martingale_cs_quantile_slop_hi(
+		  quantile, observations->size(), min_count, std::log(eps)));
 
 	double low_value = -std::numeric_limits<double>::max();
 	double high_value = std::numeric_limits<double>::max();
@@ -105,8 +105,12 @@ TEST_P(QuantileTest, IncludedInRange)
 	std::cout << "Quantile width (fraction of sample size) for "
 		  << quantile << " at eps < " << eps << " after "
 		  << kInnerIter << " iterations: "
-		  << 2 * martingale_cs_quantile_slop(quantile, kInnerIter, 32,
-			     std::log(eps) + martingale_cs_eq)
+		  << martingale_cs_quantile_slop_lo(
+			 quantile, kInnerIter, 32, std::log(eps))
+		/ kInnerIter
+		  << ", "
+		  << martingale_cs_quantile_slop_hi(
+			 quantile, kInnerIter, 32, std::log(eps))
 		/ kInnerIter
 		  << std::endl;
 
