@@ -67,12 +67,60 @@ int martingale_cs_check_constants(void);
  * around 0.  If strays far away to exceed `martingale_cs_threshold`,
  * we can reject the null: the means of the two random variables most
  * likely differ.
+ */
+double martingale_cs_threshold(
+    uint64_t n, uint64_t min_count, double log_eps);
+
+/*
+ * Returns the width of a `1 - exp(log_eps)`-confidence interval for
+ * the sum of `n` i.i.d. values sampled from `X`, where `X` has a
+ * zero mean and a range of the form `[lo, lo + span]`.
  *
- * We can also use this interval to estimate quantiles.  Let q be the
- * unknown 90th percentile for some random variable W.  We can derive
- * another random variable from W: W_i = -(0.1/0.9) if X_i <= q, and 1
- * if X_i > q.  W has zero mean and remains in the [-1, 1] range.  The
- * 2-sided confidence interval returned by
+ * This function uses Hoeffding's lemma to conseratively scale the
+ * confidence sequence.
+ */
+double martingale_cs_threshold_span(
+    uint64_t n, uint64_t min_count, double span, double log_eps);
+
+/*
+ * Returns the width of a one-sided `1 - exp(log_eps)`-confidence
+ * interval the sum of `n` i.i.d. values sampled from `X`, where `X`
+ * has a zero mean and range `[lo, hi]` (`lo <= 0 <= hi`).
+ *
+ * The one-sided confidence interval is on [Sum X_i \leq Interval_n]
+ * with `p = 1 - exp(log_eps)` for all n, where `Interval` is the
+ * return value of `martingale_cs_threshold_range`.
+ *
+ * This function finds tighter intervals than the `_span` variant when
+ * `|lo| > |hi|`: in that case, a sum > 0 means that we experienced a
+ * lot of events with small individual impact on the sum.
+ * Intuitively, that's less likely to happen than being unlucky once,
+ * with that rare event having a large impact on the sum.
+ *
+ * This function differs from `martingale_cs_threshold_span` in that
+ * it returns stronger asymmetric intervals.  The other half-interval
+ * for [Sum X_i >= Interval_n] may be obtained by flipping the sign of
+ * the variate and swapping `-lo` and `-hi`.  At least one of the two
+ * half-intervals will match the symmetric one returned by `_span`,
+ * but the other one is tighter (unless the range is symmetric, in
+ * which case both are equal).  The more negative `lo / (hi - lo)`,
+ * the smaller the interval returned by this function.
+ */
+double martingale_cs_threshold_range(
+    uint64_t n, uint64_t min_count, double lo, double hi, double log_eps);
+
+/*
+ * We can use this martingale confidence sequence to estimate
+ * quantiles.  However, the intervals aren't as tight as ones derived
+ * from a Binomial test (e.g., https://github.com/pkhuong/csm),
+ * especially for extreme quantiles.  Only use the functions below
+ * when code size or computation time (the Binomial intervals require
+ * some function inversion) are a concern.
+ *
+ * Let q be the unknown 90th percentile for some random variable W.
+ * We can derive another random variable from W: W_i = -(0.1/0.9) if
+ * X_i <= q, and 1 if X_i > q.  W has zero mean and remains in the
+ * [-1, 1] range.  The 2-sided confidence interval returned by
  * `martingale_cs_threshold(..., + martingale_cs_eq)` bounds how far
  * away we can expect |Sum w_i| to be from 0.  Set delta equal to
  * `martingale_cs_threshold(..., log(eps) + martingale_cs_le)`.
@@ -102,43 +150,6 @@ int martingale_cs_check_constants(void);
  * This pair of lower and upper bounds give us an eps-level confidence
  * interval for the 90th percentile, or for any quantile in general.
  */
-double martingale_cs_threshold(
-    uint64_t n, uint64_t min_count, double log_eps);
-
-/*
- * Returns the width of a `1 - exp(log_eps)`-confidence interval for
- * the sum of `n` i.i.d. values sampled from `X`, where `X` has a
- * zero mean and a range of the form `[lo, lo + span]`.
- */
-double martingale_cs_threshold_span(
-    uint64_t n, uint64_t min_count, double span, double log_eps);
-
-/*
- * Returns the width of a one-sided `1 - exp(log_eps)`-confidence
- * interval the sum of `n` i.i.d. values sampled from `X`, where `X`
- * has a zero mean and range `[lo, hi]` (`lo <= 0 <= hi`).
- *
- * The one-sided confidence interval is on [Sum X_i \leq Interval_n]
- * with `p = 1 - exp(log_eps)` for all n, where `Interval` is the
- * return value of `martingale_cs_threshold_range`.
- *
- * This function finds tighter intervals than the `_span` variant when
- * `|lo| > |hi|`: in that case, a sum > 0 means that we experienced a
- * lot of events with small individual impact on the sum.
- * Intuitively, that's less likely to happen than being unlucky once,
- * with that rare event having a large impact on the sum.
- *
- * This function differs from `martingale_cs_threshold_span` because
- * it returns stronger asymmetric intervals.  The other half-interval
- * for [Sum X_i >= Interval_n] may be obtained by flipping the sign of
- * the variate and swapping `-lo` and `-hi`.  At least one of the two
- * half-intervals will match the symmetric one returned by `_span`,
- * but the other one is tighter (unless the range is symmetric, in
- * which case both are equal).  The more negative `lo / (hi - lo)`,
- * the smaller the interval returned by this function.
- */
-double martingale_cs_threshold_range(
-    uint64_t n, uint64_t min_count, double lo, double hi, double log_eps);
 
 /*
  * Uses the martingale confidence sequence to return the width of the

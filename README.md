@@ -6,34 +6,15 @@ underlying Darling and Robbins's
 [Confidence sequences for mean, variance, and median](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC335597/).
 
 This confidence sequence method is appropriate to reject the null
-hypothesis that a sum of i.i.d. random values in [-1, 1] has zero mean
-(i.e., that the i.i.d. random values themselves have zero mean).  This
-test is actually more widely applicable: it suffices for the moment
-generating function `mgf(t) = E[exp(tx)] <= exp(t^2 / 2)` for all
-`t >= 0`.  However, this property can be hard to prove, and
-[Hoeffding's lemma](https://en.wikipedia.org/wiki/Hoeffding%27s_lemma)
+hypothesis that a sum of i.i.d. random values in [-1, 1] (or any other
+range of width 2) has zero mean (i.e., that the i.i.d. random values
+themselves have zero mean).  This test is actually more widely
+applicable: it suffices for the moment generating function `mgf(t) =
+E[exp(tx)] <= exp(t^2 / 2)` for all `t >= 0`.  However, this property
+can be hard to prove, and [Hoeffding's lemma](https://en.wikipedia.org/wiki/Hoeffding%27s_lemma)
 says that a range of width at most 2 (e.g., [-1, 1]) suffices to
 satisfy the condition.
 
-This library implements a confidence sequence on the rank of any
-specific quantile in the observations on top of the martingale
-confidence sequence, as demonstrated in the aforementioned paper of
-Darling and Robbins.  There is a small difference from the paper
-to account for the non-zero probability of having observations
-exactly equal to the median, when values are discrete (e.g.,
-when measuring time in clock cycles): the range is conservatively
-extended by one more observation.
-
-We could also use this martingale confidence sequence to compare the
-mean of two random variables X and Y in [0, 1] (e.g., runtimes).
-Their difference Z = X - Y has range [-1, 1] and, if X and Y have the
-same mean, Z has a mean of 0.  We can thus accumulate the sum `z_1 +
-z_2 + ... + z_i`, and compare against the threshold returned by
-`martingale_cs_threshold` at each iteration.  If we observe that the
-sum exceeds the threshold even once, we may reject the hypothesis that
-X has mean equal to or less than that of Y (a two-tailed test simply
-needs a Bonferroni correction by adding `martingale_cs_eq` to
-`log_eps`).
 
 A call to `martingale_cs_threshold` generates a confidence sequence at
 level `1 - exp(log_eps)`, for a sum of `n` values, assuming that the
@@ -55,15 +36,42 @@ rate, so that we can use the threshold symmetrically to check if the
 sum is too high or too low, and still guarantee a total false positive
 rate of at most `exp(log_eps)`.
 
+Given that Hoeffding's lemma guarantees the precondition on the mgf
+holds for any range of width 2, we can also use this to obtain a
+confidence sequence on the mean of a random variable with a domain of
+the form `[lo, lo + 2]`: the distribution mean is unknown, but the
+confidence sequence tells us how far we can expect the sample mean to
+stray from the distribution mean, and thus how far the distribution
+mean can be from the sample mean (modulo the false positive rate).
+
+This use case is facilitated by `martingale_cs_threshold_span`, which
+will rescale the confidence sequence implemented by
+`martingale_cs_threshold` for any range `[lo, lo + span]`.
+
+This library also implements confidence sequences on the rank of any
+specific quantile in the observations on top of the martingale
+confidence sequence, as demonstrated in the aforementioned paper of
+Darling and Robbins.  However, these intervals are weaker than those
+we can obtain with the
+[confidence sequence method](https://github.com/pkhuong/csm)'s
+Binomial test.  Only use them if code size or computation time
+are a concern.
+
+There is also a small difference between the implementation of the
+quantile confidence sequence and the paper to account for the non-zero
+probability of having observations exactly equal to the median, when
+values are discrete (e.g., when measuring time in clock cycles): the
+range is conservatively extended by one more observation.
+
 See also
 --------
 
 The martingale-CS can work with a large number of point statistics,
 but tends to need a lot of data to reject the null hypothesis.  If the
-question can be cast as a Binomial test, [confidence sequence
-method](https://github.com/pkhuong/csm) should terminate much more
-quickly.  Otherwise, if we can compare full distributions,
-[one-sided-KS](https://github.com/pkhuong/one-sided-ks)
-may also be applicable: this Kolmogorov-Smirnov test tends to
-require more data points than the binomial CSM, but still
-less so than martingale-CS.
+question can be cast as a Binomial test (e.g., quantile confidence
+sequences), [confidence sequence method](https://github.com/pkhuong/csm)
+should terminate much more quickly.  Otherwise, if we can compare full
+distributions, [one-sided-KS](https://github.com/pkhuong/one-sided-ks)
+may also be applicable: this Kolmogorov-Smirnov test tends to require
+more data points than the binomial CSM, but still less so than
+martingale-CS.

@@ -195,23 +195,23 @@ double martingale_cs_threshold_span(
  * where we upper bound the expression
  *   t (1 - t),
  * where
- *   t = (rho exp(v)) / (1 - rho + rho exp(v)),
- *   rho = -lo / (hi - lo)
+ *   t = (p_hi exp(v)) / (1 - p_hi + p_hi exp(v)),
+ *   p_hi = -lo / (hi - lo)
  *   v an arbitrary real >= 0.
  *
  * t is a monotonically decreasing function of v, and
  *   lim_{v -> \infty} t = 1 from below.
  *
- * t (1 - t) is maximised at t = 0.5.  When rho <= 0.5, the mean value
- * theorem tells us there exists a v such that t = 0.5 may be
- * achieved, and there's nothing to gain compared to
- * martingale_cs_threshold_span.  However, when rho > 0.5, the
- * expression is maximised at v = 0.  In that case, we may widen the
- * span that satisfies Darling and Robbins's condition on the mgf
+ * t (1 - t) is maximised at t = 0.5.  When p_hi <= 0.5, the mean
+ * value theorem tells us there exists a v such that t = 0.5, and
+ * there's nothing to gain compared to martingale_cs_threshold_span.
+ * However, when p_hi > 0.5, the expression is maximised at v = 0.  In
+ * that case, we may widen the span that satisfies Darling and
+ * Robbins's condition on the mgf.
  *
- * We have that mgf <= exp[1/2 (rho (1 - rho)) (hi - lo)^2 \lambda^t],
+ * We have that mgf <= exp[1/2 (p_hi (1 - p_hi)) (hi - lo)^2 \lambda^t],
  * and thus only need
- *   hi - lo <= 1/sqrt[rho (1 - rho)]
+ *   hi - lo <= 1/sqrt[p_hi (1 - p_hi)]
  * to guarantee mgf(\lambda) <= exp(1/2 \lambda^2).
  */
 double martingale_cs_threshold_range(
@@ -226,16 +226,19 @@ double martingale_cs_threshold_range(
 	}
 
 	const double span = next(hi - lo);
-	const double rho = prev(-lo / span);
+	// We know the mean is zero, so `p_hi` is the max probability
+	// of observing `hi`.
+	const double p_hi = prev(-lo / span);
 	double scale;
-	if (rho <= 0.5) {
+	if (p_hi <= 0.5) {
 		scale = span / 2;
 	} else {
 		/*
-		 * Ideal span is 1 / sqrt[rho (1 - rho)], so we must scale
-		 * `span` by `span / ideal_span = sqrt[rho (1 - rho)] * span`
+		 * Ideal span is 1 / sqrt[p_hi (1 - p_hi)], so we must scale
+		 * `span` by `span / ideal_span = sqrt[p_hi (1 - p_hi)] *
+		 * span`
 		 */
-		scale = next(sqrt_up(rho * next(1 - rho)) * span);
+		scale = next(sqrt_up(p_hi * next(1 - p_hi)) * span);
 	}
 
 	return next(scale * martingale_cs_threshold(n, min_count, log_eps));
